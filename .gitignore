@@ -1,5 +1,11 @@
 auto-save-list/
 eln-cache/
+.cache/
+elpa/
+straight/
+transient/
+tutorial/
+
 history
 places
 recentf
