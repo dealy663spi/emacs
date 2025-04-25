@@ -156,12 +156,26 @@
   :ensure t)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;  Configure Python IDE
+;;  Configure LSP with eglot
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(use-package python-mode
-  :ensure nil
-  :custom
-  (python-shell-interpreter "python3"))
+(use-package eglot
+  :ensure t
+  :defer t
+  :config
+  (add-to-list 'eglot-server-programs '((sh-mode bash-ts-mode) . ("bash-language-server" "start")))
+  
+  :hook
+  (sh-mode . eglot-ensure)
+  (bash-ts-mode . eglot-ensure)
+  (python-mode . eglot-ensure))
+
+;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; ;;  Configure Python IDE
+;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; (use-package python-mode
+;;   :ensure nil
+;;   :custom
+;;   (python-shell-interpreter "python3"))
 
 ;; customs after use package
 (custom-set-variables
