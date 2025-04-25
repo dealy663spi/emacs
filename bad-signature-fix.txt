@@ -1,0 +1,9 @@
+I recently had this issue and want to help people who may have similar issues in the future. I tried to use gnu-elpa-keyring-update, but it also failed because it pointed to an expired URL. To fix this,
+
+Go to the package website: https://elpa.gnu.org/packages/gnu-elpa-keyring-update.html, download the latest .tar file.
+
+Run tar -xvf gnu-elpa-keyring-update-2022.12.1.tar, or whatever the latest filename version is (this was the latest as of writing this answer) in the terminal where the current directory is where the file is located.
+
+Now that the files are extracted from the .tar, you'll want the update.el file. To load it in emacs use M-x load-file, navigate to the update.el file and hit enter.
+
+Now, with it pointing to the correct URL, running package-refresh-contents should work with no errors (or at least not the error from this question).
