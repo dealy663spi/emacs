@@ -26,28 +26,6 @@
 (global-auto-revert-mode 1)
 (setq global-auto-revert-non-file-bufferst 1)
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; set modus theme optinons
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(require-theme 'modus-themes)
-
-(setq modus-themes-mode-line '(borderless accented padded))
-(setq modus-themes-region '(bg-only))
-(setq modus-themes-bold-constructs t
-      modus-themes-italic-constructs t
-      modus-themes-paren-match '(bold intense underline))
-(setq modus-themes-italic-constructs t)
-(setq modus-themes-syntax '(alt-syntax faint))
-
-(setq modus-themes-common-palette-overrides 1)
-(setq modus-themes-preset-overrides-intense 1)
-(setq modus-themes-completion 'opinionated)
-
-;; ;; all modus theme cusomizations must be done before the theme is loaded
-;; ;;(load-theme 'modus-vivendi t)
-(load-theme 'modus-vivendi t)
-
-;; (define-key global-map (kbd "<f5>")  #'modus-themes-toggle)
 
 ;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; ;; configure package management
@@ -135,6 +113,32 @@
   (load bootstrap-file nil 'nomessage))
 
 (straight-use-package 'use-package)
+(straight-use-package 'modus-themes)
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; set modus theme options
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+::(require-theme 'modus-themes)
+
+(setq modus-themes-mode-line '(borderless accented padded))
+(setq modus-themes-region '(bg-only))
+(setq modus-themes-bold-constructs t
+      modus-themes-italic-constructs t
+      modus-themes-paren-match '(bold intense underline))
+(setq modus-themes-italic-constructs t)
+(setq modus-themes-syntax '(alt-syntax faint))
+
+(setq modus-themes-common-palette-overrides
+      '((bg-mode-line-active bg-inactive)
+        ,@modus-themes-preset-overrides-intense))
+(setq modus-themes-preset-overrides-intense 1)
+(setq modus-themes-completion 'opinionated)
+
+;; all modus theme cusomizations must be done before the theme is loaded
+(load-theme 'modus-vivendi-tinted t)
+;;(load-theme 'modus-vivendi-tritanopia t)
+
+;; (define-key global-map (kbd "<f5>")  #'modus-themes-toggle)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;  Configure co-pilot integration
@@ -156,12 +160,55 @@
   :after (request org markdown-mode shell-maker))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;  Configure Python IDE
+;;  Configure LSP
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(use-package python-mode
-  :ensure nil
-  :custom
-  (python-shell-interpreter "/Library/Frameworks/Python.framework/Versions/3.12/bin/python3"))
+;; (use-package lsp-mode
+;;   :init
+;;   ;; set prefix for lsp-command-keymap (few alternatives - "C-l", "C-c l")
+;;   (setq lsp-keymap-prefix "C-c l")
+;;   :hook (;; replace XXX-mode with concrete major-mode(e. g. python-mode)
+;;          (XXX-mode . lsp)
+;;          ;; if you want which-key integration
+;;          (lsp-mode . lsp-enable-which-key-integration))
+;;   :commands lsp)
+
+;; ;; optionally
+;; (use-package lsp-ui :commands lsp-ui-mode)
+;; ;; if you are helm user
+;; (use-package helm-lsp :commands helm-lsp-workspace-symbol)
+;; ;; if you are ivy user
+;; (use-package lsp-ivy :commands lsp-ivy-workspace-symbol)
+;; (use-package lsp-treemacs :commands lsp-treemacs-errors-list)
+
+;; ;; optionally if you want to use debugger
+;; (use-package dap-mode)
+;; ;; (use-package dap-LANGUAGE) to load the dap adapter for your language
+
+;; ;; optional if you want which-key integration
+;; (use-package which-key
+;;     :config
+;;     (which-key-mode))
+
+(setq custom-file (locate-user-emacs-file "tree-sitter.el"))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;  Configure eglot
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(use-package eglot
+  :ensure t
+  :defer t
+  :config
+  (add-to-list 'eglot-server-programs '((sh-mode bash-ts-mode) . ("bash-language-server" "start")))
+  
+  :hook
+  (sh-mode . eglot-ensure)
+  (bash-ts-mode . eglot-ensure)
+  (python-mode . eglot-ensure))
+
+;; (use-package python-mode
+;;   :ensure nil
+;;   :custom
+;;   (python-shell-interpreter "/Library/Frameworks/Python.framework/Versions/3.12/bin/python3"))
 
 ;; customs after use package
 (custom-set-variables
