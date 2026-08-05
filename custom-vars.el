@@ -186,19 +186,18 @@ Interactively, a prefix argument bypasses the cache."
 ;;(straight-use-package 'modus-themes)
 ;; (require-theme 'modus-themes)
 
-(setq modus-themes-mode-line '(borderless accented padded))
-(setq modus-themes-region '(bg-only))
+;; Removed: modus-themes-mode-line, -region, -paren-match, -syntax, -completion.
+;; Those were dropped in the modus-themes 4.0 rewrite and do not exist in 5.3;
+;; setq on an undefined variable succeeds silently, so they had no effect.  The
+;; equivalents now live in modus-themes-common-palette-overrides.
 (setq modus-themes-bold-constructs t
-      modus-themes-italic-constructs t
-      modus-themes-paren-match '(bold intense underline))
+      modus-themes-italic-constructs t)
 (setq modus-themes-italic-constructs t)
-(setq modus-themes-syntax '(alt-syntax faint))
 
 (setq modus-themes-common-palette-overrides
       '((bg-mode-line-active bg-inactive)
 	,@modus-themes-preset-overrides-intense))
 (setq modus-themes-preset-overrides-intense 1)
-(setq modus-themes-completion 'opinionated)
 
 ;; ;; all modus theme cusomizations must be done before the theme is loaded
 ;; (load-theme 'modus-vivendi t)
