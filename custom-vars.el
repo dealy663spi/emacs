@@ -24,25 +24,26 @@
 
 ;; Revert buffers when the underlying file has changed
 (global-auto-revert-mode 1)
-(setq global-auto-revert-non-file-bufferst 1)
+(setq global-auto-revert-non-file-buffers 1)
 
 ;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; ;; configure package management
 ;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(require 'package)
+;;(require 'package)
 
-(setq package-archives '(("melpa" . "https://melpa.org/packages/")
-			 ("org" . "https://orgmode.org/elpa/")
-			 ("elpa" . "https://elpa.gnu.org/packages/")))
+;; (setq package-archives '(("melpa" . "https://melpa.org/packages/")
+;; 			 ("org" . "https://orgmode.org/elpa/")
+;; 			 ("elpa" . "https://elpa.gnu.org/packages/")))
 
-(package-initialize)
+;; (package-initialize)
 (unless (package-installed-p 'use-package)
   (package-refresh-contents)
   (package-install 'use-package))
 
 (eval-when-compile
   (require 'use-package))
-(setq use-package-always-ensure t)
+;; (setq use-package-always-ensure t)
+(setq straight-use-package-by-default t)
 
 ;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; ;; upgrade built in installer
@@ -109,29 +110,53 @@
 
 (straight-use-package 'use-package)
 (straight-use-package 'modus-themes)
+(require 'modus-themes)  ; ef-themes depends on modus-themes infrastructure
+
+;; Sync exec-path from a login shell so nvm/node tools are visible to Emacs.
+;; The login shell prints banner output (neofetch), so tag the value and pull it
+;; back out by marker rather than trusting the whole of stdout.
+(let* ((out (shell-command-to-string
+             "bash -lc 'printf \"__EMACS_PATH__%s\\n\" \"$PATH\"'"))
+       (path (and (string-match "__EMACS_PATH__\\(.*\\)$" out)
+                  (match-string 1 out))))
+  (when (and path (not (string-empty-p path)))
+    (setenv "PATH" path)
+    (setq exec-path (append (parse-colon-path path) (list exec-directory)))))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; configure theme
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; (straight-use-package 'ef-themes)
+;; (require 'ef-themes)
+
+;; (setq ef-themes-bold-constructs t
+;;       ef-themes-italic-constructs t)
+
+(load-theme 'modus-vivendi-deuteranopia t)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; set modus theme optinons
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;(straight-use-package 'modus-themes)
 ;; (require-theme 'modus-themes)
 
-(setq modus-themes-mode-line '(borderless accented padded))
-(setq modus-themes-region '(bg-only))
-(setq modus-themes-bold-constructs t
-      modus-themes-italic-constructs t
-      modus-themes-paren-match '(bold intense underline))
-(setq modus-themes-italic-constructs t)
-(setq modus-themes-syntax '(alt-syntax faint))
+;; (setq modus-themes-mode-line '(borderless accented padded))
+;; (setq modus-themes-region '(bg-only))
+;; (setq modus-themes-bold-constructs t
+;;       modus-themes-italic-constructs t
+;;       modus-themes-paren-match '(bold intense underline))
+;; (setq modus-themes-italic-constructs t)
+;; (setq modus-themes-syntax '(alt-syntax faint))
 
-(setq modus-themes-common-palette-overrides
-      '((bg-mode-line-active bg-inactive)
-	,@modus-themes-preset-overrides-intense))
-(setq modus-themes-preset-overrides-intense 1)
-(setq modus-themes-completion 'opinionated)
+;; (setq modus-themes-common-palette-overrides
+;;       '((bg-mode-line-active bg-inactive)
+;; 	,@modus-themes-preset-overrides-intense))
+;; (setq modus-themes-preset-overrides-intense 1)
+;;(setq modus-themes-completion 'opinionated)
 
-;; all modus theme cusomizations must be done before the theme is loaded
-(load-theme 'modus-vivendi t)
-;;(load-theme 'modus-vivendi-deuteranopia :no-confirm)
+;; ;; all modus theme cusomizations must be done before the theme is loaded
+;; (load-theme 'modus-vivendi t)
+;; (load-theme 'modus-vivendi-deuteranopia t)
 
 ;; (define-key global-map (kbd "<f5>")  #'modus-themes-toggle)
 
@@ -156,7 +181,9 @@
 ;;  Configure co-pilot integration
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (use-package editorconfig)
-(use-package jsonrpc)
+
+;; jsonrpc is built into Emacs 29+; tell straight not to fetch it as a dependency
+(straight-use-package '(jsonrpc :type built-in))
 
 (use-package copilot
   :straight (:host github :repo "copilot-emacs/copilot.el" :files ("*.el"))
@@ -194,6 +221,64 @@
 ;;   :custom
 ;;   (python-shell-interpreter "python3"))
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;  Configure gptel (Claude / LLM integration)
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(use-package gptel
+  :straight (:host github :repo "karthink/gptel" :files ("*.el"))
+  :config
+  ;; gptel.el does not pull this in, but gptel--anthropic-models lives there.
+  (require 'gptel-anthropic)
+
+  ;; This gptel checkout predates the Claude 5 line, so its built-in list stops
+  ;; at claude-opus-4-8.  Register the current IDs ahead of it so both show up
+  ;; in gptel's model picker.
+  (defconst my/anthropic-models
+    (append
+     '((claude-sonnet-5
+        :description "Best combination of speed and intelligence"
+        :capabilities (media tool-use cache)
+        :mime-types ("image/jpeg" "image/png" "image/gif" "image/webp" "application/pdf")
+        :context-window 1000
+        :input-cost 3
+        :output-cost 15)
+       (claude-opus-5
+        :description "Most capable model for complex agentic coding and reasoning"
+        :capabilities (media tool-use cache)
+        :mime-types ("image/jpeg" "image/png" "image/gif" "image/webp" "application/pdf")
+        :context-window 1000
+        :input-cost 5
+        :output-cost 25))
+     gptel--anthropic-models)
+    "Anthropic models for gptel, with the Claude 5 line prepended.")
+
+  ;; Sonnet is the default; escalate to Opus per-request when a task needs it.
+  (defvar my/gptel-default-model 'claude-sonnet-5)
+  (defvar my/gptel-heavy-model 'claude-opus-5)
+
+  (defun my/gptel-toggle-model ()
+    "Toggle the gptel model between Sonnet and Opus."
+    (interactive)
+    (setq-local gptel-model
+                (if (eq gptel-model my/gptel-heavy-model)
+                    my/gptel-default-model
+                  my/gptel-heavy-model))
+    (message "gptel model: %s" gptel-model))
+
+  ;; Resolve the key lazily: a GUI Emacs may not inherit the login shell's env,
+  ;; so fall back to ~/.authinfo.gpg (machine api.anthropic.com ...).
+  (setq gptel-model my/gptel-default-model
+        gptel-backend (gptel-make-anthropic "Claude"
+                        :stream t
+                        :models my/anthropic-models
+                        :key (lambda ()
+                               (or (getenv "ANTHROPIC_API_KEY")
+                                   (gptel-api-key-from-auth-source)))))
+
+  :bind (("C-c g" . gptel)
+         ("C-c G" . gptel-menu)
+         ("C-c M" . my/gptel-toggle-model)))
+
 ;; customs after use package
 (custom-set-variables
  ;; custom-set-variables was added by Custom.
@@ -207,3 +292,15 @@
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
  )
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;  Configure Claude integration 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; (use-package gptel
+;;   :config
+;;   (setq gptel-backend
+;;         (gptel-make-anthropic "Claude"
+;;           :stream t
+;;           :key (getenv "ANTHROPIC_API_KEY")))
+;;   (setq gptel-model 'claude-sonnet-4-6))
