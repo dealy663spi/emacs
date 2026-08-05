@@ -3,11 +3,18 @@ eln-cache/
 elpa/
 straight/
 transient/
+.cache/
+request/
+gnu-elpa-keyring-update-*/
 
 history
 places
 recentf
+tramp
 login-path.cache
+
+# stray buffer dumps, e.g. the literally-named "*Claude*"
+\**\*
 
 *~
 *#
