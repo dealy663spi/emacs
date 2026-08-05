@@ -194,10 +194,14 @@ Interactively, a prefix argument bypasses the cache."
       modus-themes-italic-constructs t)
 (setq modus-themes-italic-constructs t)
 
+;; Backquote, not quote: ,@ only splices inside a backquote.  With a plain
+;; quote this stored a literal (\,@ modus-themes-preset-overrides-intense)
+;; entry and the preset never applied.  Order matters -- modus resolves
+;; overrides first-match-wins, so the bg-mode-line-active line below has to
+;; precede the preset, which sets that same key to bg-blue-subtle.
 (setq modus-themes-common-palette-overrides
-      '((bg-mode-line-active bg-inactive)
+      `((bg-mode-line-active bg-inactive)
 	,@modus-themes-preset-overrides-intense))
-(setq modus-themes-preset-overrides-intense 1)
 
 ;; ;; all modus theme cusomizations must be done before the theme is loaded
 ;; (load-theme 'modus-vivendi t)
