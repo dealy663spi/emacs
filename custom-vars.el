@@ -26,29 +26,13 @@
 (global-auto-revert-mode 1)
 (setq global-auto-revert-non-file-buffers 1)
 
-;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; ;; configure package management
-;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;(require 'package)
-
-;; (setq package-archives '(("melpa" . "https://melpa.org/packages/")
-;; 			 ("org" . "https://orgmode.org/elpa/")
-;; 			 ("elpa" . "https://elpa.gnu.org/packages/")))
-
-;; (package-initialize)
-(unless (package-installed-p 'use-package)
-  (package-refresh-contents)
-  (package-install 'use-package))
-
-(eval-when-compile
-  (require 'use-package))
-;; (setq use-package-always-ensure t)
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;  Configure package management
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; package.el is switched off in early-init.el and never initialized, so any
+;; package-* setting here would be inert.  straight.el installs everything,
+;; including use-package itself -- see the bootstrap below.
 (setq straight-use-package-by-default t)
-
-;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; ;; upgrade built in installer
-;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(setq package-install-upgrade-built-in t)
 
 ;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; ;; use some packages
@@ -109,6 +93,10 @@
   (load bootstrap-file nil 'nomessage))
 
 (straight-use-package 'use-package)
+;; Load straight's copy explicitly.  Requiring use-package any earlier would
+;; pull in the one built into Emacs and leave straight maintaining a checkout
+;; that never runs.
+(require 'use-package)
 (straight-use-package 'modus-themes)
 (require 'modus-themes)  ; ef-themes depends on modus-themes infrastructure
 
@@ -191,7 +179,6 @@ Interactively, a prefix argument bypasses the cache."
 ;; (setq ef-themes-bold-constructs t
 ;;       ef-themes-italic-constructs t)
 
-(load-theme 'modus-vivendi-deuteranopia t)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; set modus theme optinons
@@ -199,23 +186,23 @@ Interactively, a prefix argument bypasses the cache."
 ;;(straight-use-package 'modus-themes)
 ;; (require-theme 'modus-themes)
 
-;; (setq modus-themes-mode-line '(borderless accented padded))
-;; (setq modus-themes-region '(bg-only))
-;; (setq modus-themes-bold-constructs t
-;;       modus-themes-italic-constructs t
-;;       modus-themes-paren-match '(bold intense underline))
-;; (setq modus-themes-italic-constructs t)
-;; (setq modus-themes-syntax '(alt-syntax faint))
+(setq modus-themes-mode-line '(borderless accented padded))
+(setq modus-themes-region '(bg-only))
+(setq modus-themes-bold-constructs t
+      modus-themes-italic-constructs t
+      modus-themes-paren-match '(bold intense underline))
+(setq modus-themes-italic-constructs t)
+(setq modus-themes-syntax '(alt-syntax faint))
 
-;; (setq modus-themes-common-palette-overrides
-;;       '((bg-mode-line-active bg-inactive)
-;; 	,@modus-themes-preset-overrides-intense))
-;; (setq modus-themes-preset-overrides-intense 1)
-;;(setq modus-themes-completion 'opinionated)
+(setq modus-themes-common-palette-overrides
+      '((bg-mode-line-active bg-inactive)
+	,@modus-themes-preset-overrides-intense))
+(setq modus-themes-preset-overrides-intense 1)
+(setq modus-themes-completion 'opinionated)
 
 ;; ;; all modus theme cusomizations must be done before the theme is loaded
 ;; (load-theme 'modus-vivendi t)
-;; (load-theme 'modus-vivendi-deuteranopia t)
+(load-theme 'modus-vivendi-deuteranopia t)
 
 ;; (define-key global-map (kbd "<f5>")  #'modus-themes-toggle)
 
@@ -339,28 +326,6 @@ Interactively, a prefix argument bypasses the cache."
          ("C-c G" . gptel-menu)
          ("C-c M" . my/gptel-toggle-model)))
 
-;; customs after use package
-(custom-set-variables
- ;; custom-set-variables was added by Custom.
- ;; If you edit it by hand, you could mess it up, so be careful.
- ;; Your init file should contain only one such instance.
- ;; If there is more than one, they won't work right.
- '(package-selected-packages '(use-package)))
-(custom-set-faces
- ;; custom-set-faces was added by Custom.
- ;; If you edit it by hand, you could mess it up, so be careful.
- ;; Your init file should contain only one such instance.
- ;; If there is more than one, they won't work right.
- )
-
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;  Configure Claude integration 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; (use-package gptel
-;;   :config
-;;   (setq gptel-backend
-;;         (gptel-make-anthropic "Claude"
-;;           :stream t
-;;           :key (getenv "ANTHROPIC_API_KEY")))
-;;   (setq gptel-model 'claude-sonnet-4-6))
+;; No custom-set-variables/custom-set-faces block here on purpose: the only
+;; entry was package-selected-packages, which package.el never reads under
+;; straight.  M-x customize will write a fresh block if you ever save one.
