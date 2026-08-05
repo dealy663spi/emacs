@@ -113,15 +113,74 @@
 (require 'modus-themes)  ; ef-themes depends on modus-themes infrastructure
 
 ;; Sync exec-path from a login shell so nvm/node tools are visible to Emacs.
-;; The login shell prints banner output (neofetch), so tag the value and pull it
-;; back out by marker rather than trusting the whole of stdout.
-(let* ((out (shell-command-to-string
-             "bash -lc 'printf \"__EMACS_PATH__%s\\n\" \"$PATH\"'"))
-       (path (and (string-match "__EMACS_PATH__\\(.*\\)$" out)
-                  (match-string 1 out))))
-  (when (and path (not (string-empty-p path)))
+;; Spawning a login shell costs about a second here (the profile runs neofetch),
+;; so cache the result on disk and only pay that cost again when a shell startup
+;; file has been edited since the cache was written.  M-x my/sync-login-path
+;; with a prefix argument forces a refresh.
+
+(defvar my/login-path-cache-file
+  (locate-user-emacs-file "login-path.cache")
+  "File caching PATH as reported by a login shell.")
+
+(defvar my/login-path-source-files
+  (mapcar #'expand-file-name
+          '("~/.bashrc" "~/.bash_profile" "~/.bash_login" "~/.profile"))
+  "Shell startup files that invalidate `my/login-path-cache-file'.
+These mirror what `bash -lc' reads; keep the two in sync if that command
+changes.  Files that do not exist are ignored.")
+
+(defun my/login-path--from-shell ()
+  "Return PATH as reported by a login shell, or nil on failure.
+The login shell prints banner output, so tag the value and pull it
+back out by marker rather than trusting the whole of stdout."
+  (let ((out (shell-command-to-string
+              "bash -lc 'printf \"__EMACS_PATH__%s\\n\" \"$PATH\"'")))
+    (when (string-match "__EMACS_PATH__\\(.*\\)$" out)
+      (let ((path (match-string 1 out)))
+        (unless (string-empty-p path) path)))))
+
+(defun my/login-path--cache-fresh-p ()
+  "Non-nil if the cache exists and no shell startup file is newer than it."
+  (let ((stamp (file-attribute-modification-time
+                (file-attributes my/login-path-cache-file))))
+    (and stamp
+         (not (seq-some
+               (lambda (file)
+                 (let ((mtime (file-attribute-modification-time
+                               (file-attributes file))))
+                   (and mtime (time-less-p stamp mtime))))
+               my/login-path-source-files)))))
+
+(defun my/login-path (&optional force)
+  "Return the login shell's PATH, reading the cache when it is still fresh.
+With FORCE non-nil, bypass the cache and re-run the login shell."
+  (or (and (not force)
+           (my/login-path--cache-fresh-p)
+           (with-temp-buffer
+             (insert-file-contents my/login-path-cache-file)
+             (let ((cached (string-trim (buffer-string))))
+               (unless (string-empty-p cached) cached))))
+      (when-let* ((path (my/login-path--from-shell)))
+        (with-temp-file my/login-path-cache-file (insert path "\n"))
+        path)))
+
+(defun my/sync-login-path (&optional force)
+  "Set $PATH and `exec-path' from the login shell.
+Interactively, a prefix argument bypasses the cache."
+  (interactive "P")
+  (when-let* ((path (my/login-path force)))
     (setenv "PATH" path)
-    (setq exec-path (append (parse-colon-path path) (list exec-directory)))))
+    ;; `parse-colon-path' maps empty PATH components (a leading, trailing, or
+    ;; doubled ":") to nil, and a nil in `exec-path' means "search
+    ;; `default-directory'" -- so Emacs would look for executables in whatever
+    ;; buffer you happen to be visiting.  Drop them.
+    (setq exec-path (append (delq nil (parse-colon-path path))
+                            (list exec-directory)))
+    (when (called-interactively-p 'interactive)
+      (message "exec-path synced from login shell (%d entries)"
+               (length exec-path)))))
+
+(my/sync-login-path)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; configure theme
@@ -230,27 +289,22 @@
   ;; gptel.el does not pull this in, but gptel--anthropic-models lives there.
   (require 'gptel-anthropic)
 
-  ;; This gptel checkout predates the Claude 5 line, so its built-in list stops
-  ;; at claude-opus-4-8.  Register the current IDs ahead of it so both show up
-  ;; in gptel's model picker.
+  ;; gptel ships the Claude 5 line (sonnet-5, fable-5) but its Opus entries stop
+  ;; at claude-opus-4-8, so register claude-opus-5 ahead of the built-in list.
+  ;; Only add models gptel is actually missing -- a duplicate id would shadow
+  ;; gptel's own entry on lookup and show twice in the model picker.
   (defconst my/anthropic-models
     (append
-     '((claude-sonnet-5
-        :description "Best combination of speed and intelligence"
-        :capabilities (media tool-use cache)
-        :mime-types ("image/jpeg" "image/png" "image/gif" "image/webp" "application/pdf")
-        :context-window 1000
-        :input-cost 3
-        :output-cost 15)
-       (claude-opus-5
+     '((claude-opus-5
         :description "Most capable model for complex agentic coding and reasoning"
         :capabilities (media tool-use cache)
         :mime-types ("image/jpeg" "image/png" "image/gif" "image/webp" "application/pdf")
         :context-window 1000
         :input-cost 5
-        :output-cost 25))
+        :output-cost 25
+        :cutoff-date "2026-05"))
      gptel--anthropic-models)
-    "Anthropic models for gptel, with the Claude 5 line prepended.")
+    "Anthropic models for gptel, plus claude-opus-5 which gptel lacks.")
 
   ;; Sonnet is the default; escalate to Opus per-request when a task needs it.
   (defvar my/gptel-default-model 'claude-sonnet-5)
