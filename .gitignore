@@ -1,7 +1,11 @@
 auto-save-list/
 eln-cache/
 elpa/
-straight/
+# Ignore straight's repos/ and build/ trees, but track the version lockfile.
+# Must exclude straight/* rather than straight/ -- git will not descend into an
+# excluded directory, so a negation under it would never be reached.
+straight/*
+!straight/versions/
 transient/
 .cache/
 request/
