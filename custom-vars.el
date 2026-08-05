@@ -234,7 +234,13 @@ Interactively, a prefix argument bypasses the cache."
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;  Configure magit
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(use-package magit)
+;; Deferred: a bare (use-package magit) emits a plain require and pulls in ~141
+;; libraries (magit-section, transient, with-editor, ...) on every launch, which
+;; costs about a third of startup.  :bind gives use-package an autoload to hang
+;; the command on, so magit loads on first use instead.
+(use-package magit
+  :defer t
+  :bind ("C-x g" . magit-status))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;  Configure co-pilot integration
