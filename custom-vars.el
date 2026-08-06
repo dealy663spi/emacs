@@ -6,8 +6,12 @@
 
 ;; Turn off some unneeded UI elements
 (menu-bar-mode -1)  ; Leave this one on if you're a beginner!
-(tool-bar-mode -1)
-(scroll-bar-mode -1)
+;; tool-bar-mode and scroll-bar-mode only exist in a GUI build; this Emacs is
+;; built --without-x, so calling them unguarded signals void-function and
+;; aborts the rest of this file.  menu-bar-mode is fine -- the menu bar works
+;; in a terminal.
+(when (fboundp 'tool-bar-mode) (tool-bar-mode -1))
+(when (fboundp 'scroll-bar-mode) (scroll-bar-mode -1))
 
 ;; keep track of recently opened files
 (recentf-mode 1)
